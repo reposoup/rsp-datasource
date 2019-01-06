@@ -1,3 +1,20 @@
+webui:
+    siteconfig:
+        views:
+            - default:
+                repos: ruby
+                branch: refs/remotes/origin/trunk
+        git-svn-branches:
+            - trunk:
+                branch: refs/remotes/origin/trunk
+                style: trunk
+            - "current (2.6)":
+                branch: refs/remotes/origin/ruby_2_6
+                style: current-release
+            - "prev (2.5)":
+                branch: refs/remotes/origin/ruby_2_5
+                style: previous-release
+
 repos:
     "ruby":
         path: "c:/cygwin64/home/oku/repos/ruby"

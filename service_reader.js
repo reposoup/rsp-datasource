@@ -88,11 +88,27 @@ const heads = {
     }
 };
 
+const getconfig = {
+    get: function(req, res){
+        let c = {};
+        c.webui = config.webui;
+        Object.keys(config.repos).forEach(r => {
+            c[r] = {};
+            c[r].annotations = config.repos[r].annotations;
+        });
+        res.json(c);
+    }
+};
+
 // Configure server
 const openapi_args = {
     apiDoc: fs.readFileSync(path.resolve(__dirname, "api.json"), "utf8"),
     app: app,
     paths: [
+        { 
+            path: "/config",
+            module: getconfig
+        },
         { 
             path: "/heads",
             module: heads  

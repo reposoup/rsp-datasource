@@ -8,6 +8,19 @@
     "security": [],
     "servers": [],
     "paths": {
+        "/config": {
+            "get": {
+                "summary": "Get config",
+                "description": "",
+                "parameters": [ ],
+                "operationId": "",
+                "responses": {
+                    "default": {
+                        "description": "Default response"
+                    }
+                }
+            }
+        },
         "/heads": {
             "get": {
                 "summary": "",
