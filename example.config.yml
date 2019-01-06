@@ -1,0 +1,53 @@
+repos:
+    "ruby":
+        path: "c:/cygwin64/home/oku/repos/ruby"
+        zone: check
+        annotations:
+            - svnsite:
+                type: git-svn
+                uuid: b2dd03c8-39d4-4d8f-98ff-823fe69b080e
+                basepath: svn+ssh://ci.ruby-lang.org/ruby
+                svnsites:
+                    - default:
+                        url: https://svn.ruby-lang.org/cgi-bin/viewvc.cgi?view=revision&revision=__SVN_REVISION__
+
+            - ml-ruby-core:
+                type: tag
+                url: http://blade.nagaokaut.ac.jp/cgi-bin/scat.rb/ruby/ruby-core/NNNNN
+                pattern: "[ruby-core:NNNNN]"
+            - ml-ruby-dev:
+                type: tag
+                pattern: "[ruby-dev:NNNNN]"
+            - ruby-redmine0:
+                type: tag
+                id: ruby-redmine
+                url: https://bugs.ruby-lang.org/issues/NNNNN
+                pattern: "[Bug #NNNNN]"
+            - ruby-redmine1:
+                type: tag
+                id: ruby-redmine
+                url: https://bugs.ruby-lang.org/issues/NNNNN
+                pattern: "[#NNNNN]"
+            - ruby-redmine2:
+                type: tag
+                id: ruby-redmine
+                url: https://bugs.ruby-lang.org/issues/NNNNN
+                pattern: "[Feature #NNNNN]"
+            - ruby-github:
+                type: tag
+                id: ruby-github
+                url: https://github.com/ruby/ruby/pull/NNNNN
+                pattern: "[Fix GH-NNNNN]"
+            - ci-skip:
+                type: tag
+                id: CI_SKIP
+                pattern: "[ci skip]"
+            - ruby-svn:
+                type: tag
+                id: SVN_REVISION
+                pattern: "rNNNNN"
+
+db:
+    url: "mongodb://127.0.0.1:27999/reposoup"
+
+
