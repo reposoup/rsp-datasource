@@ -1,0 +1,154 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "API",
+        "version": "1.0.0",
+        "contact": {}
+    },
+    "security": [],
+    "servers": [],
+    "paths": {
+        "/heads": {
+            "get": {
+                "summary": "",
+                "description": "",
+                "parameters": [
+                    {
+                        "name": "reponame",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Repository name symbol"
+                    }
+                ],
+                "operationId": "",
+                "responses": {
+                    "default": {
+                        "description": "Default response"
+                    }
+                }
+            }
+        },
+        "/searchrevs": {
+            "get": {
+                "summary": "Search against revision/author data",
+                "description": "",
+                "parameters": [
+                    {
+                        "name": "op",
+                        "in": "query",
+                        "required": true,
+                        "content": {
+                            "application/json": {
+                                "schema":{
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "name": "count",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "100"
+                        },
+                        "description": "Count of max results"
+                    },
+                    {
+                        "name": "start",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Revid for start from"
+                    }
+
+                ],
+                "operationId": "",
+                "responses": {
+                    "default": {
+                        "description": "Default response"
+                    }
+                }
+            }
+        },
+        "/fetchrevs": {
+            "post": {
+                "summary": "Fetch revision data",
+                "description": "",
+                "parameters": [],
+                "operationId": "fetch",
+                "requestBody": {
+                    "description": "Fetch targets",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "title": "Query",
+                                    "required":["rev"],
+                                    "properties":{
+                                        "rev":{
+                                            "type": "string",
+                                            "title": "revid"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "default": {
+                        "description": "Default response"
+                    }
+                }
+            }
+        },
+        "/mainhistory": {
+            "get": {
+                "summary": "",
+                "description": "",
+                "parameters": [
+                    {
+                        "name": "count",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "100"
+                        },
+                        "description": "Count of max revisions"
+                    },
+                    {
+                        "name": "from",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Revid for start from"
+                    }
+                ],
+                "operationId": "history",
+                "responses": {
+                    "default": {
+                        "description": "Default response"
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "links": {},
+        "callbacks": {},
+        "schemas": {}
+    }
+}
