@@ -6,6 +6,7 @@
   "author": "okuoku <mjt@cltn.org>",
   "license": "CC0-1.0",
   "dependencies": {
+    "body-parser": "^1.18.3",
     "cors": "^2.8.4",
     "express": "^4.0.0",
     "express-openapi": "^3.0.0",

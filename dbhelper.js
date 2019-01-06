@@ -126,7 +126,7 @@ function make_db_search(url, zonename){
             function search_author(reposname, strings){
                 return new Promise(done => {
                     const q = {
-                        repo: reposname,
+                        repos: reposname,
                         author: {$or: strings.map(strmatch)}
                     };
                     refs.aggregate([{$match: q},
@@ -177,10 +177,10 @@ function make_db_queryhistory(url, zonename){
             function queryhistory(reposname, from, count){
                 return new Promise(done => {
                     const query0 = {
-                        repo: reposname,
+                        repos: reposname,
                         ident: from  
                     }
-                    refs.findOne(query).then(first => {
+                    refs.findOne(query0).then(first => {
                         const colour = first.colour;
                         const time = first.date;
                         const q1 = {
@@ -199,8 +199,8 @@ function make_db_queryhistory(url, zonename){
                         };
                         Promise.all([refs.find(q1).toArray(),
                             refs.find(q2).toArray()]).then(arr => {
-                                const a1 = arr[1];
-                                const a2 = arr[2];
+                                const a1 = arr[0];
+                                const a2 = arr[1];
                                 done(a1.concat(a2).map(e => {
                                     return e.ident;
                                 }));
@@ -226,7 +226,7 @@ function make_db_queryrev(url, zonename){
                 return new Promise((done, err) => {
                     let res = {};
                     const query = {
-                        repo: reposname,
+                        repos: reposname,
                         ident: {$in: idents},
                     };
                     Promise.all([refs.find(query).toArray(),
@@ -236,12 +236,14 @@ function make_db_queryrev(url, zonename){
                             let tags = {};
                             tags_arr.forEach(e => {
                                 let set = e;
+                                let ident = e.ident;
+                                let repos = e.repos;
                                 delete set.ident;
-                                delete set.repo;
-                                if(tags[e.ident]){
-                                    tags[e.ident].push(set);
+                                delete set.repos;
+                                if(tags[ident]){
+                                    tags[ident].push(set);
                                 }else{
-                                    tags[e.ident] = [set];
+                                    tags[ident] = [set];
                                 }
                             });
                             done(revs.map(e => {

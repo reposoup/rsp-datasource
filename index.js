@@ -30,6 +30,7 @@ const cors_options = {
 };
 
 app.use(cors(cors_options));
+app.use(bodyparser.json());
 app.use("/read", ServiceReader(config));
 
 app.disable("etag"); // As an API server, it's waste of time

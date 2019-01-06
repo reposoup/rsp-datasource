@@ -51,8 +51,16 @@ const searchrevs = {
 
 const fetchrevs = {
     post: function(req, res){
-        // FIXME: Perhaps 500 or so??
-        unknown_service(req, res);
+        const reposname = req.query.repos;
+        const idents = req.body;
+        dbzone(THE_ZONE).then(zone => zone.queryrev(reposname, idents))
+        .then(arr => {
+            res.json({result: arr});
+        }).catch(e => {
+            console.log("Err", e);
+            res.status(500).json({error: e});
+        });
+
     }
 };
 
@@ -60,7 +68,14 @@ const mainhistory = {
     get: function(req, res){
         const count = req.query.count;
         const from = req.query.from;
-        unknown_service(req, res);
+        const reposname = req.query.repos;
+        dbzone(THE_ZONE).then(zone => zone.queryhistory(reposname, from, count))
+        .then(arr => {
+            res.json({result: arr});
+        }).catch(e => {
+            console.log("Err", e);
+            res.status(500).json({error: e});
+        });
     }
 };
 

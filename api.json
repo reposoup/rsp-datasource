@@ -14,7 +14,7 @@
                 "description": "",
                 "parameters": [
                     {
-                        "name": "reponame",
+                        "name": "repos",
                         "in": "query",
                         "required": true,
                         "schema": {
@@ -81,7 +81,17 @@
             "post": {
                 "summary": "Fetch revision data",
                 "description": "",
-                "parameters": [],
+                "parameters": [
+                    {
+                        "name": "repos",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Repository name symbol"
+                    }
+                ],
                 "operationId": "fetch",
                 "requestBody": {
                     "description": "Fetch targets",
@@ -91,15 +101,8 @@
                             "schema": {
                                 "type": "array",
                                 "items": {
-                                    "type": "object",
-                                    "title": "Query",
-                                    "required":["rev"],
-                                    "properties":{
-                                        "rev":{
-                                            "type": "string",
-                                            "title": "revid"
-                                        }
-                                    }
+                                    "type": "string",
+                                    "title": "Query"
                                 }
                             }
                         }
@@ -117,6 +120,15 @@
                 "summary": "",
                 "description": "",
                 "parameters": [
+                    {
+                        "name": "repos",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Repository name symbol"
+                    },
                     {
                         "name": "count",
                         "in": "query",
