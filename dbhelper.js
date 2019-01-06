@@ -51,6 +51,10 @@ function resetdb(url, name){
             ).then(_ =>
                    pathscol.createIndex({"repos":1, "ident": 1})
             ).then(_ =>
+                   pathscol.createIndex({"ops.from_oid":1})
+            ).then(_ =>
+                   pathscol.createIndex({"ops.to_oid":1})
+            ).then(_ =>
                    pathscol.createIndex({"ops.from": "text", "ops.to": "text"})
             ).then(_ =>
                    statescol.createIndex({"date": 1})
