@@ -106,7 +106,7 @@ function enterpathpages(P, reposname, commit){
                     content.push(ops[idx]);
                 }
                 oppages.push({
-                             "reposname":reposname,
+                             "repos":reposname,
                              "ident":commit.sha(),
                              "page":page,
                              "ops":content});
