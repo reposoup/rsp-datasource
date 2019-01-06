@@ -260,6 +260,32 @@ function make_db_queryrev(url, zonename){
     });
 }
 
+function make_db_querypathop(url, zonename){
+    const pathsname = zonename + "_paths";
+    const mongo = new MongoClient(url,{useNewUrlParser:true});
+    return new Promise((done, err) => {
+        mongo.connect().then(client => {
+            // FIXME: Rewrite with Aggregation
+            const paths = client.db().collection(pathsname);
+            function querypathop(reposname, ident, pagestart, count){
+                return new Promise((done, err) => {
+                    let res = {};
+                    const query = {
+                        repos: reposname,
+                        ident: ident,
+                        page: {$gte: pagestart}
+                    };
+                    paths.find(query).sort({page: 1}).limit(count)
+                    .toArray().then(arr => {
+                        done(arr);
+                    });
+                });
+            }
+            done(querypathop);
+        });
+    });
+}
+
 function make_db_setter(url, zonename, name){
     const colname = zonename + "_" + name;
     const client = new MongoClient(url,{useNewUrlParser:true});
@@ -444,6 +470,7 @@ module.exports = {
     make_db_getheads:make_db_getheads,
     make_db_queryhistory:make_db_queryhistory,
     make_db_queryrev:make_db_queryrev,
+    make_db_querypathop:make_db_querypathop,
     make_db_refstate_new:make_db_refstate_new,
     make_db_refstate_update:make_db_refstate_update,
     make_db_refstate_enumtargets:make_db_refstate_enumtargets,

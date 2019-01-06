@@ -24,6 +24,9 @@ function dbzone(zone){
                 return DB.make_db_queryrev(dburl, zone);
             }).then(queryrev => {
                 db[zone].queryrev = queryrev;
+                return DB.make_db_querypathop(dburl, zone);
+            }).then(querypathop => {
+                db[zone].querypathop = querypathop;
                 return DB.make_db_search(dburl, zone);
             }).then(search => {
                 db[zone].search = search;
@@ -79,6 +82,22 @@ const mainhistory = {
     }
 };
 
+const fetchpathops = {
+    get: function(req, res){
+        const count = req.query.count;
+        const page = req.query.page;
+        const ident = req.query.ident;
+        const reposname = req.query.repos;
+        dbzone(THE_ZONE).then(zone => zone.querypathop(reposname, ident, page, count))
+        .then(arr => {
+            res.json({result: arr});
+        }).catch(e => {
+            console.log("Err", e);
+            res.status(500).json({error: e});
+        });
+    }
+};
+
 const heads = {
     get: function(req, res){
         dbzone(THE_ZONE).then(zone => zone.getheads("BOGUS"))
@@ -120,6 +139,10 @@ const openapi_args = {
         { 
             path: "/fetchrevs",
             module: fetchrevs
+        },
+        { 
+            path: "/fetchpathops",
+            module: fetchpathops
         },
         {
             path: "/mainhistory",
