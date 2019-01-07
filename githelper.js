@@ -27,7 +27,15 @@ function calcmainhistorychain(commit, cb){
             });
         };
 
-        next();
+        cb(commit).then(check => {
+            if(check){
+                ret.push(commit);
+                next();
+            }else{
+                console.log("DONE0");
+                done([]);
+            }
+        });
     });
 }
 
