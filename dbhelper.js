@@ -190,7 +190,7 @@ function make_db_queryhistory(url, zonename){
                         };
                         const q2 = {
                             repos: reposname,
-                            date: {$gt: time},
+                            date: {$lt: time},
                             colour: colour
                         };
                         const opt2 = { 
