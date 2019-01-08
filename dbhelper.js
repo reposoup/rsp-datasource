@@ -30,7 +30,7 @@ function w_cleardb(url, name){
         const mongo = new MongoClient(url,{useNewUrlParser:true});
         return mongo.connect().then(client => {
             const dtagstatecol = client.db().collection(dtagstatename);
-            const now = Date.now();
+            const now = new Date();
             return dtagstatecol.insertOne({theStateIn: {rev: 0, date: now, ts: 0}})
                 .then(_ => {
                     return dtagstatecol.insertOne({theLastMod: {date: now, ts: 0}});
@@ -75,7 +75,7 @@ function w_make_db_setdtag(url, name){
             const statecol = client.db().collection(dtagstatename);
             function setdtag(repos, ident, replace_rev, obj){
                 return new Promise((done, err) => {
-                    const now = Date.now();
+                    const now = new Date();
                     function fetchprev(){
                         if(replace_rev){
                             return tagscol.findOne({repos: repos, ident: ident, 
