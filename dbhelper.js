@@ -1,6 +1,199 @@
 const escapeRegExp = require("lodash.escaperegexp");
 const MongoClient = require("mongodb").MongoClient;
 
+/*
+ * Tags DB ops
+ *
+ *  ZONE_dtags: {repos,ident} => rev: REV, type:, text:, links: [{rel:, repos:, ident:, peg:}]
+ *                               date:, ts:, by:
+ *  ZONE_dtaglog: {repos, ident, rev: REV, date:, ts:, by:, (tag: DTAG), (prev: DTAG)}
+ *  ZONE_dtagstate: theStateIn: {rev: REV, date:, ts:}, theLastMod: {date:, ts:}
+ *
+ *  NB:
+ *   - Update sequence: "dtagstate"(In) => dtaglog => dtags => "dtagstate"(LastMod)
+ *   - dtaglog MAY CONTAIN FALSE LOG because only "dtags" updated in atomic.
+ *     ie) a REV may fail.
+ *   - To create log replay, scan over dtags.rev and needs to remove bogus logs.
+ */
+
+function w_cleardb(url, name){
+    /* NB: Drops entire Tags DB content! */
+    const dtagsname = name + "_dtags";
+    const dtagslogname = name + "_dtagslog";
+    const dtagstatename = name + "_dtagstate";
+    return Promise.all([
+        resetdb0(url, dtagsname),
+        resetdb0(url, dtagslogname),
+        resetdb0(url, dtagstatename)
+    ])
+    .then(_ => {
+        const mongo = new MongoClient(url,{useNewUrlParser:true});
+        return mongo.connect().then(client => {
+            const dtagstatecol = client.db().collection(dtagstatename);
+            const now = Date.now();
+            return dtagstatecol.insertOne({theStateIn: {rev: 0, date: now, ts: 0}})
+                .then(_ => {
+                    return dtagstatecol.insertOne({theLastMod: {date: now, ts: 0}});
+                }).then(_ => {
+                    client.close();
+                    return w_setupdb(url, name);
+                });
+        });
+    });
+}
+
+function w_setupdb(url, name){
+    const mongo = new MongoClient(url,{useNewUrlParser:true});
+    const dtagsname = name + "_dtags";
+    const dtagslogname = name + "_dtagslog";
+    const dtagstatename = name + "_dtagstate";
+    return new Promise((done, err) => {
+        mongo.connect().then(client => {
+            const dtagscol = client.db().collection(dtagsname);
+            const dtagslogcol = client.db().collection(dtagslogname);
+            dtagscol.createIndex({repos: 1, ident: 1})
+            .then(_ => dtagscol.createIndex({rev: 1}, {unique: true}))
+            .then(_ => dtagscol.createIndex({text: "text"}))
+            .then(_ => dtagscol.createIndex({"links.repos":1, "links.ident":1}))
+            .then(_ => dtagscol.createIndex({by: 1}))
+            .then(_ => dtagscol.createIndex({date: 1}))
+            .then(_ => done(true));
+        });
+    });
+}
+
+function w_make_db_setdtag(url, name){
+    const mongo = new MongoClient(url,{useNewUrlParser:true});
+    return new Promise((done, err) => {
+        const dtagsname = name + "_dtags";
+        const dtagslogname = name + "_dtagslog";
+        const dtagstatename = name + "_dtagstate";
+        w_make_db_pingupdate(url,name)
+        .then(pingupdate => mongo.connect().then(client => {
+            const tagscol = client.db().collection(dtagsname);
+            const logcol = client.db().collection(dtagslogname);
+            const statecol = client.db().collection(dtagstatename);
+            function setdtag(repos, ident, replace_rev, obj){
+                return new Promise((done, err) => {
+                    const now = Date.now();
+                    function fetchprev(){
+                        if(replace_rev){
+                            return tagscol.findOne({repos: repos, ident: ident, 
+                                                   rev: replace_rev})
+                                .then(obj => {
+                                    return Promise.resolve(obj);
+                                });
+                        }else{
+                            return Promise.resolve({});
+                        }
+                    }
+                    function doupdate(prev){
+                        let myrev = prev.rev;
+                        let enter = Object.assign({}, obj);
+                        let replaced = {};
+                        console.log("Doupdate", prev);
+                        enter.rev = myrev;
+                        enter.repos = repos;
+                        enter.ident = ident;
+                        enter.date = now;
+                        fetchprev().then(rr => {
+                            replaced = rr;
+                            return Promise.resolve(true);
+                        }).then(_ => {
+                            if(replaced.prev){
+                                delete replaced.prev;
+                            }
+                            enter.prev = replaced;
+                            return logcol.insertOne(enter);
+                        }).then(_ => {
+                            if(replace_rev){
+                                const q = {
+                                    repos: repos,
+                                    ident: ident,
+                                    rev: replace_rev
+                                };
+
+                                return tagscol.deleteOne(q)
+                                    .then(_ => tagscol.insertOne(enter));
+                            }else{
+                                return tagscol.insertOne(enter);
+                            }
+                        }).then(_ => {
+                            return pingupdate();
+                        }).then(_ => {
+                            done(enter);
+                        });
+                    }
+                    /* FIXME: Restore to Promise */
+                    statecol.findOneAndUpdate({theStateIn: {$exists: true}},
+                                              {
+                                                  $inc: {"theStateIn.rev": 1},
+                                                  $set: {"theStateIn.date": now},
+                                                  $currentDate: {"theStateIn.ts": {$type:"timestamp"}}
+                                              },
+                                              {returnOriginal: true},
+                                              (e, prev) => {
+                                                  if(e){
+                                                      console.log("Err", e);
+                                                      err(e);
+                                                  }else{
+                                                      doupdate(prev.value.theStateIn);
+                                                  }
+                                              });
+                });
+
+            }
+            done(setdtag);
+        }));
+    });
+}
+
+function w_make_db_pingupdate(url, name){
+    const mongo = new MongoClient(url,{useNewUrlParser:true});
+    const dtagstatename = name + "_dtagstate";
+    return new Promise((done, err) => {
+        mongo.connect().then(client => {
+            const statecol = client.db().collection(dtagstatename);
+            function pingupdate(){
+                return statecol.findOneAndUpdate({theLastMod: {$exists:true}},
+                                                 {
+                                                     $currentDate: 
+                                                     {ts: {$type: "timestamp"},
+                                                         date: {$type: "date"}}
+                                                 });
+            }
+            done(pingupdate);
+        });
+    });
+}
+
+function make_db_getdtags(url, name){
+    /* NB: Includes backlink specified in "links" */
+    const mongo = new MongoClient(url,{useNewUrlParser:true});
+    return new Promise((done, err) => {
+        const dtagsname = name + "_dtags";
+        mongo.connect().then(client => {
+            const tagscol = client.db().collection(dtagsname);
+            function getdtags(repos, idents){
+                return new Promise((done, err) => {
+                    tagscol.find({$or: [
+                        {repos: repos, ident: {$in: idents}},
+                        {"links.repos": repos, "links.ident": {$in: idents}}
+                    ]}).toArray().then(arr => {
+                        done(arr);
+                    });
+                });
+            }
+            done(getdtags);
+        });
+    });
+}
+
+/* 
+ * Standard DB ops 
+ */
+
+
 function resetdb0(url, name){
     const client = new MongoClient(url,{useNewUrlParser:true});
     return new Promise((done,err) => {
@@ -218,7 +411,11 @@ function make_db_queryrev(url, zonename){
     const stagsname = zonename + "_stags";
     const mongo = new MongoClient(url,{useNewUrlParser:true});
     return new Promise((done, err) => {
-        mongo.connect().then(client => {
+        let getdtags = false;
+        make_db_getdtags(url, zonename).then(dd => {
+            getdtags = dd;
+            return Promise.resolve(true);
+        }).then(_ => mongo.connect()).then(client => {
             // FIXME: Rewrite with Aggregation
             const refs = client.db().collection(refsname);
             const stags = client.db().collection(stagsname);
@@ -230,29 +427,45 @@ function make_db_queryrev(url, zonename){
                         ident: {$in: idents},
                     };
                     Promise.all([refs.find(query).toArray(),
-                        stags.find(query).toArray()]).then(arr => {
-                            const tags_arr = arr[1];
-                            let revs = arr[0];
-                            let tags = {};
-                            tags_arr.forEach(e => {
-                                let set = e;
-                                let ident = e.ident;
-                                let repos = e.repos;
-                                delete set.ident;
-                                delete set.repos;
-                                if(tags[ident]){
-                                    tags[ident].push(set);
-                                }else{
-                                    tags[ident] = [set];
-                                }
-                            });
-                            done(revs.map(e => {
-                                if(tags[e.ident]){
-                                    e.tags = tags[e.ident];
-                                }
-                                return e;
-                            }));
+                        stags.find(query).toArray(),
+                        getdtags(reposname, idents)
+                    ]).then(arr => {
+                        const tags_arr = arr[1];
+                        const dtags_arr = arr[2];
+                        let revs = arr[0];
+                        let tags = {};
+                        tags_arr.forEach(e => {
+                            let set = e;
+                            let ident = e.ident;
+                            let repos = e.repos;
+                            delete set.ident;
+                            delete set.repos;
+                            if(tags[ident]){
+                                tags[ident].push(set);
+                            }else{
+                                tags[ident] = [set];
+                            }
                         });
+                        dtags_arr.forEach(e => {
+                            /* FIXME: Can we do same..? */
+                            let set = e;
+                            let ident = e.ident;
+                            let repos = e.repos;
+                            delete set.ident;
+                            delete set.repos;
+                            if(tags[ident]){
+                                tags[ident].push(set);
+                            }else{
+                                tags[ident] = [set];
+                            }
+                        });
+                        done(revs.map(e => {
+                            if(tags[e.ident]){
+                                e.tags = tags[e.ident];
+                            }
+                            return e;
+                        }));
+                    });
                 });
             }
             done(queryrev);
@@ -475,5 +688,11 @@ module.exports = {
     make_db_refstate_update:make_db_refstate_update,
     make_db_refstate_enumtargets:make_db_refstate_enumtargets,
     heads_set:heads_set,
-    heads_get:heads_get
+    heads_get:heads_get,
+    /* WriteOPs */
+    w_cleardb:w_cleardb,
+    w_setupdb:w_setupdb,
+    w_make_db_setdtag:w_make_db_setdtag,
+    w_make_db_pingupdate:w_make_db_pingupdate,
+    make_db_getdtags:make_db_getdtags
 };

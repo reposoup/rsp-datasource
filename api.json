@@ -221,6 +221,58 @@
                     }
                 }
             }
+        },
+        "/settag": {
+            "post": {
+                "summary": "Inject a tag",
+                "description": "",
+                "parameters": [
+                    {
+                        "name": "repos",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Repository name symbol"
+                    },
+                    {
+                        "name": "ident",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Revid"
+                    },
+                    {
+                        "name": "tagrev_replace",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "Tag Revid to replace"
+                    }
+                ],
+                "operationId": "settag",
+                "requestBody": {
+                    "description": "Fetch targets",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "default": {
+                        "description": "Default response"
+                    }
+                }
+            }
         }
     },
     "components": {

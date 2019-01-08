@@ -6,6 +6,7 @@ const bodyparser = require("body-parser");
 const Yaml = require("js-yaml");
 const config = Yaml.safeLoad(fs.readFileSync(__dirname + "/config.yml", "utf8"));
 const ServiceReader = require("./service_reader.js");
+const ServiceWriter = require("./service_writer.js");
 
 const app = express();
 //const app = ServiceReader(config);
@@ -32,6 +33,7 @@ const cors_options = {
 app.use(cors(cors_options));
 app.use(bodyparser.json());
 app.use("/read", ServiceReader(config));
+app.use("/write", ServiceWriter(config));
 
 app.disable("etag"); // As an API server, it's waste of time
 console.log("Listening at", config_port);
